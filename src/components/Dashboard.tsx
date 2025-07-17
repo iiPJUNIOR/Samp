@@ -263,31 +263,33 @@ const Dashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {metricas.gargalos.map((gargalo, index) => {
-                  const etapa = etapas.find(e => e.nome === gargalo.etapa);
+                {etapas.map((etapa) => {
+                  // Calcular a quantidade de processos em tempo real para cada etapa
+                  const processosFiltradosPorEtapa = processosFiltrados.filter(p => p.statusAtual === etapa.id);
+                  const quantidade = processosFiltradosPorEtapa.length;
                   
                   return (
                     <div 
-                      key={index} 
+                      key={etapa.id} 
                       className="flex flex-col items-center justify-center p-4 rounded-lg border"
                       style={{ 
-                        background: `linear-gradient(135deg, ${etapa?.cor}10, ${etapa?.cor}20)`,
-                        borderColor: `${etapa?.cor}30` 
+                        background: `linear-gradient(135deg, ${etapa.cor}10, ${etapa.cor}20)`,
+                        borderColor: `${etapa.cor}30` 
                       }}
                     >
                       <div 
                         className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
                         style={{ 
-                          backgroundColor: etapa?.cor || '#64748B',
-                          boxShadow: `0 4px 12px ${etapa?.cor}40`
+                          backgroundColor: etapa.cor || '#64748B',
+                          boxShadow: `0 4px 12px ${etapa.cor}40`
                         }}
                       >
                         <span className="text-2xl font-bold text-white">
-                          {gargalo.quantidade}
+                          {quantidade}
                         </span>
                       </div>
                       <div className="text-center">
-                        <h3 className="font-medium text-sm">{gargalo.etapa}</h3>
+                        <h3 className="font-medium text-sm">{etapa.nome}</h3>
                       </div>
                     </div>
                   );
