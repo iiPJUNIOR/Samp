@@ -439,6 +439,45 @@ export const ProcessFlowProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     setProcessos(prev => [...prev, novoProcesso]);
     
+    // Criar notificações para operadores quando admin/supervisor criar processo
+    if (currentUser?.role === 'admin' || currentUser?.role === 'supervisor') {
+      const operadores = usuarios.filter(u => u.role === 'operador' && u.ativo);
+      
+      const notificacoesOperadores = operadores.map(operador => ({
+        id: gerarId(),
+        tipo: 'sistema' as const,
+        titulo: 'Novo Processo Criado',
+        mensagem: `Novo processo ${novoProcesso.numeroPedido} foi criado por ${currentUser.nome} - Cliente: ${novoProcesso.cliente}`,
+        processoId: novoProcesso.id,
+        usuarioId: operador.id,
+        lida: false,
+        data: new Date(),
+        tenantId: tenant?.id || ''
+      }));
+      
+      setNotificacoes(prev => [...prev, ...notificacoesOperadores]);
+    } 
+    // Se um operador criar um processo, notificar admins e supervisores
+    else if (currentUser?.role === 'operador') {
+      const adminsESupervisores = usuarios.filter(u => 
+        (u.role === 'admin' || u.role === 'supervisor') && u.ativo
+      );
+      
+      const notificacoesAdminsSupervisores = adminsESupervisores.map(usuario => ({
+        id: gerarId(),
+        tipo: 'sistema' as const,
+        titulo: 'Novo Processo Criado',
+        mensagem: `Novo processo ${novoProcesso.numeroPedido} foi criado pelo operador ${currentUser.nome} - Cliente: ${novoProcesso.cliente}`,
+        processoId: novoProcesso.id,
+        usuarioId: usuario.id,
+        lida: false,
+        data: new Date(),
+        tenantId: tenant?.id || ''
+      }));
+      
+      setNotificacoes(prev => [...prev, ...notificacoesAdminsSupervisores]);
+    }
+    
     // Atualizar métricas em tempo real
     atualizarMetricas();
     
@@ -527,18 +566,22 @@ export const ProcessFlowProvider: React.FC<{ children: React.ReactNode }> = ({ c
     ));
     
     const etapaNome = etapas.find(e => e.id === novaEtapa)?.nome || 'Nova etapa';
+    const etapaAnteriorNome = etapas.find(e => e.id === processo.statusAtual)?.nome || 'Etapa anterior';
     
-    // Se é finalização por operador, criar notificações para admin e supervisores
-    if (currentUser?.role === 'operador' && etapaNome === 'Entregue') {
+    // Determinar quem deve receber notificações com base em quem está movendo o processo
+    let novasNotificacoes = [];
+    
+    // Se um operador moveu o processo, notificar admins e supervisores
+    if (currentUser?.role === 'operador') {
       const adminsESupervisores = usuarios.filter(u => 
         (u.role === 'admin' || u.role === 'supervisor') && u.ativo
       );
       
-      const novasNotificacoes = adminsESupervisores.map(usuario => ({
+      const notificacoesAdminsSupervisores = adminsESupervisores.map(usuario => ({
         id: gerarId(),
         tipo: 'sistema' as const,
-        titulo: 'Processo Finalizado',
-        mensagem: `O processo ${processo.numeroPedido} foi finalizado pelo operador ${currentUser.nome}`,
+        titulo: 'Processo Movido',
+        mensagem: `O processo ${processo.numeroPedido} foi movido de ${etapaAnteriorNome} para ${etapaNome} por ${currentUser?.nome || 'Sistema'}`,
         processoId: processo.id,
         usuarioId: usuario.id,
         lida: false,
@@ -546,8 +589,48 @@ export const ProcessFlowProvider: React.FC<{ children: React.ReactNode }> = ({ c
         tenantId: tenant?.id || ''
       }));
       
-      setNotificacoes(prev => [...prev, ...novasNotificacoes]);
+      novasNotificacoes = [...notificacoesAdminsSupervisores];
+    } 
+    // Se um admin ou supervisor moveu o processo, notificar operadores
+    else if (currentUser?.role === 'admin' || currentUser?.role === 'supervisor') {
+      const operadores = usuarios.filter(u => u.role === 'operador' && u.ativo);
+      
+      const notificacoesOperadores = operadores.map(operador => ({
+        id: gerarId(),
+        tipo: 'sistema' as const,
+        titulo: 'Processo Movido',
+        mensagem: `O processo ${processo.numeroPedido} foi movido de ${etapaAnteriorNome} para ${etapaNome} por ${currentUser?.nome || 'Sistema'}`,
+        processoId: processo.id,
+        usuarioId: operador.id,
+        lida: false,
+        data: new Date(),
+        tenantId: tenant?.id || ''
+      }));
+      
+      // Também notificar outros admins e supervisores (exceto o atual)
+      const outrosAdminsESupervisores = usuarios.filter(u => 
+        (u.role === 'admin' || u.role === 'supervisor') && 
+        u.ativo && 
+        u.id !== currentUser?.id
+      );
+      
+      const notificacoesOutrosAdmins = outrosAdminsESupervisores.map(usuario => ({
+        id: gerarId(),
+        tipo: 'sistema' as const,
+        titulo: 'Processo Movido',
+        mensagem: `O processo ${processo.numeroPedido} foi movido de ${etapaAnteriorNome} para ${etapaNome} por ${currentUser?.nome || 'Sistema'}`,
+        processoId: processo.id,
+        usuarioId: usuario.id,
+        lida: false,
+        data: new Date(),
+        tenantId: tenant?.id || ''
+      }));
+      
+      novasNotificacoes = [...notificacoesOperadores, ...notificacoesOutrosAdmins];
     }
+    
+    // Adicionar as notificações
+    setNotificacoes(prev => [...prev, ...novasNotificacoes]);
     
     // Atualizar métricas em tempo real
     atualizarMetricas();

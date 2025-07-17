@@ -29,6 +29,7 @@ import {
   Building,
   MessageSquare
 } from 'lucide-react';
+import { NotificationsDropdown } from '@/components/ui/notifications-dropdown';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -271,17 +272,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
               <ThemeToggle />
               
               {/* Notificações */}
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="w-5 h-5" />
-                {notificacaoNaoLidas > 0 && (
-                  <Badge 
-                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                    variant="destructive"
-                  >
-                    {notificacaoNaoLidas}
-                  </Badge>
-                )}
-              </Button>
+              <NotificationsDropdown />
 
               {/* Menu do usuário */}
               <DropdownMenu>
