@@ -22,6 +22,7 @@ import SystemStatus from './SystemStatus';
 import ProcessDetails from './ProcessDetails';
 import ProcessForm from './ProcessForm';
 import DemoRealTimeUpdates from './DemoRealTimeUpdates';
+import { Processo } from '@/types/processflow';
 
 const Dashboard: React.FC = () => {
   const { metricas, processos, etapas, currentUser, editarProcesso } = useProcessFlow();
@@ -45,6 +46,28 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Filtrar processos por período
+  const filtrarPorPeriodo = (processos: Processo[]) => {
+    const hoje = new Date();
+    let dataInicio = new Date();
+    
+    switch (periodo) {
+      case 'semana':
+        dataInicio.setDate(hoje.getDate() - 7); // 7 dias atrás
+        break;
+      case 'mes':
+        dataInicio.setDate(hoje.getDate() - 30); // 30 dias atrás
+        break;
+      case 'trimestre':
+        dataInicio.setDate(hoje.getDate() - 90); // 90 dias atrás
+        break;
+      default:
+        dataInicio.setDate(hoje.getDate() - 30); // Padrão: 30 dias
+    }
+    
+    return processos.filter(p => new Date(p.dataAtualizacao) >= dataInicio);
+  };
+
   // Para operador: filtrar apenas processos em suas etapas permitidas
   const processosOperador = currentUser?.role === 'operador' 
     ? processos.filter(p => {
@@ -52,12 +75,15 @@ const Dashboard: React.FC = () => {
         return etapa && ['Produção', 'Expedição', 'Entrega'].includes(etapa.nome);
       })
     : processos;
+  
+  // Aplicar filtro de período
+  const processosFiltrados = filtrarPorPeriodo(currentUser?.role === 'operador' ? processosOperador : processos);
 
-  const processosRecentes = (currentUser?.role === 'operador' ? processosOperador : processos)
+  const processosRecentes = processosFiltrados
     .sort((a, b) => new Date(b.dataAtualizacao).getTime() - new Date(a.dataAtualizacao).getTime())
     .slice(0, 5);
 
-  const processosAtrasados = (currentUser?.role === 'operador' ? processosOperador : processos)
+  const processosAtrasados = processosFiltrados
     .filter(p => p.dataPrevistaEntrega < new Date() && !p.dataEntregaRealizada);
 
   // Métricas específicas para operador
