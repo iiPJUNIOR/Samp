@@ -265,8 +265,9 @@ const Dashboard: React.FC = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {etapas.map((etapa) => {
                   // Calcular a quantidade de processos em tempo real para cada etapa
-                  const processosFiltradosPorEtapa = processosFiltrados.filter(p => p.statusAtual === etapa.id);
-                  const quantidade = processosFiltradosPorEtapa.length;
+                  // Usamos todos os processos, sem filtro de período, para mostrar o total real
+                  const processosNaEtapa = processos.filter(p => p.statusAtual === etapa.id);
+                  const quantidade = processosNaEtapa.length;
                   
                   return (
                     <div 
